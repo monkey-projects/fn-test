@@ -1,6 +1,17 @@
 (ns monkey.fn-test.core-test
-  (:require [clojure.test :refer :all]))
+  (:require [clojure.test :refer :all]
+            [monkey.fn-test.core :as sut]))
 
-(deftest some-test
-  (testing "this should fail"
-    (is (= 0 1))))
+(deftest socket-channels
+  (testing "can open and close"
+    (let [path "test.socket"
+          c (sut/open-socket-channel path)]
+      (try
+        (is (some? c))
+        (sut/close-socket-channel c)
+        (finally
+          (sut/delete-address path))))))
+        
+(deftest parse-socket-path
+  (testing "extracts full path from the arg"
+    (is (= "/test/socket" (sut/parse-socket-path "unix:/test/socket")))))
