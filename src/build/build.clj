@@ -17,4 +17,4 @@
   (b/uber {:class-dir class-dir
            :uber-file uberjar
            :basis basis
-           :main 'com.fnproject.fn.runtime.EntryPoint}))
+           :main 'monkey.fn-test.core}))

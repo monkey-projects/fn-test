@@ -1,8 +1,12 @@
 (ns monkey.fn-test.core
-  (:gen-class :methods [[handler [String] String]]))
+  (:gen-class)
+  (:require [fdk-clj.core :as fdk]))
 
-(defn ^String -handler
+(defn handler
   "Entrypoint method for fn.  Configure this in the docker command
    as `monkey.fn_test.core::handler`."
-  [_ ^String arg]
-  (str "Hello, " (if (empty? arg) "world" arg) " from Clojure!"))
+  [_ data]
+  (str "Hello, World from Clojure using fdk-clj! Data is " data))
+
+(defn -main [& args]
+  (fdk/handle handler))

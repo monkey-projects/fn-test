@@ -1,9 +1,13 @@
 {:paths ["src/main/clj"]
- :deps {com.github.clj-easy/graal-build-time {:mvn/version "0.1.4"}
-        com.fnproject.fn/runtime {:mvn/version "1.0.174"}}
+ :deps {com.github.clj-easy/graal-build-time {:mvn/version "0.1.4"}}
  :aliases
  {;; To build uberjar: clojure -T:build uber
   :build
   {:extra-paths ["src/build"]
    :deps {io.github.clojure/tools.build {:mvn/version "0.9.4"}}
-   :ns-default build}}}
+   :ns-default build}
+
+  :test
+  {:extra-deps {lambdaisland/kaocha {:mvn/version "1.84.1335"}}
+   :extra-paths ["src/test"]
+   :main-opts ["-m" "kaocha.runner"]}}}
