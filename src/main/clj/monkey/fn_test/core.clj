@@ -2,14 +2,14 @@
   (:gen-class)
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [byte-streams :as bs]
-            [monkey.fn-test.path :as p])
+            [clj-commons.byte-streams :as bs]
+            [monkey.fn-test
+             [http :as http]
+             [path :as p]])
   (:import [java.io StringWriter PrintWriter]
            [java.net StandardProtocolFamily UnixDomainSocketAddress]
            [java.nio.channels ServerSocketChannel]
-           [java.nio ByteBuffer]
-           [java.nio.file Files Path]
-           [java.nio.file.attribute FileAttribute PosixFilePermission]))
+           [java.nio ByteBuffer]))
 
 (defn open-socket-channel
   "Opens a Unix domain socket at given path and creates a
@@ -61,10 +61,10 @@
 (defn- read-from-channel [chan]
   (let [buf (ByteBuffer/allocate 10000)
         n (.read chan buf)]
-    (log/info "Read" n "bytes")
+    ;; TODO Support larger requests
+    (log/debug "Read" n "bytes")
     (.flip buf)
-    (let [s (bs/to-string buf)]
-      (log/info "Read:" s))))
+    buf))
 
 (defn- write-to-channel [chan body]
   (->> (make-reply ["HTTP/1.1 200 OK"
@@ -79,9 +79,12 @@
   (.resolve dir (str "fn-" (random-uuid) ".sock")))
 
 (defn- accept-and-reply [chan]
-  (log/info "Waiting for incoming connection...")
-  (let [in (.accept chan)]
-    (read-from-channel in)
+  (log/debug "Waiting for incoming connection...")
+  (let [in (.accept chan)
+        req (-> in
+                (read-from-channel)
+                (http/parse-incoming))]
+    (log/info "Got incoming request:" (:method req) (:path req))
     (write-to-channel in "The test has succeeded!")
     (.close in)))
 

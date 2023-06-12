@@ -1,7 +1,8 @@
 {:paths ["src/main/clj"]
  :deps {org.clojure/tools.logging {:mvn/version "1.2.4"}
         ch.qos.logback/logback-classic {:mvn/version "1.4.7"}
-        org.clj-commons/byte-streams {:mvn/version "0.3.2"}}
+        org.clj-commons/byte-streams {:mvn/version "0.3.2"}
+        camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}}
  
  :aliases
  {;; To build uberjar: clojure -T:build uber
