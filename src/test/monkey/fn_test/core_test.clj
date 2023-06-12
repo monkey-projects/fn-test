@@ -4,7 +4,7 @@
 
 (deftest socket-channels
   (testing "can open and close"
-    (let [path "test.socket"
+    (let [path (sut/->path "test.socket")
           c (sut/open-socket-channel path)]
       (try
         (is (some? c))
