@@ -8,7 +8,6 @@ native-image \
     --enable-url-protocols=https,http \
     --report-unsupported-elements-at-runtime \
     -H:Name=func \
-    -H:ReflectionConfigurationFiles=reflect-config.json \
     -classpath "target/fn-test-standalone.jar" \
     -jar "target/fn-test-standalone.jar" \
     -o target/func

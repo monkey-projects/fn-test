@@ -1,6 +1,6 @@
 schema_version: 20180708
 name: fntest1
-version: 0.0.35
+version: 0.0.37
 runtime: java
 build_image: fnproject/fn-java-fdk-build:jdk17-latest
 run_image: fnproject/fn-java-fdk:jre17-latest

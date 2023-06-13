@@ -59,7 +59,7 @@
 
 (defn- read-from-channel [^SocketChannel chan]
   (let [buf (ByteBuffer/allocate 10000)
-        n (.read chan (into-array java.nio.ByteBuffer [buf]))]
+        n (.read chan ^ByteBuffer buf)]
     ;; TODO Support larger requests
     (log/debug "Read" n "bytes")
     (.flip buf)
@@ -72,8 +72,6 @@
                     ""
                     body])
        (bs/to-byte-buffer)
-       (vector)
-       (into-array java.nio.ByteBuffer)
        (.write chan)))
 
 (defn- tmp-socket-path [^Path dir]
