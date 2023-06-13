@@ -12,14 +12,14 @@
 
 (defn ^Path ->path
   "Converts `s` into a `Path`"
-  [s]
+  [^String s]
   (Path/of s (make-array String 0)))
 
-(defn create-symlink [dest src]
+(defn create-symlink [^Path dest ^Path src]
   (log/debug "Creating symlink:" src "->" dest)
   (Files/createSymbolicLink src (.getFileName dest) (make-array FileAttribute 0)))
 
 (defn delete
   "Deletes the file the path points to"
-  [p]
+  [^Path p]
   (.. p (toFile) (delete)))

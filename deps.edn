@@ -1,6 +1,6 @@
 {:paths ["src/main/clj"]
  :deps {org.clojure/tools.logging {:mvn/version "1.2.4"}
-        ch.qos.logback/logback-classic {:mvn/version "1.4.7"}
+        org.slf4j/slf4j-api {:mvn/version "2.0.7"}
         org.clj-commons/byte-streams {:mvn/version "0.3.2"}
         camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}}
  
@@ -9,7 +9,9 @@
   :build
   {:extra-paths ["src/build"]
    :deps {io.github.clojure/tools.build {:mvn/version "0.9.4"}}
-   :ns-default build}
+   :ns-default build
+   :jvm-opts ["-Dclojure.compiler.direct-linking=true"
+              "-Dclojure.spec.skip.macros=true"]}
 
   :test
   {:extra-deps {lambdaisland/kaocha {:mvn/version "1.84.1335"}}
@@ -19,6 +21,10 @@
   :watch
   {:main-opts ["-m" "kaocha.runner" "--watch"]}
 
-  ;; For GraalVM native build
-  :native
-  {:extra-deps {com.github.clj-easy/graal-build-time {:mvn/version "0.1.4"}}}}}
+  :logback
+  {:extra-deps {ch.qos.logback/logback-classic {:mvn/version "1.4.7"}}}
+
+  ;; Included in uberjar build, see build.clj
+  :uberjar
+  {:extra-deps {com.github.clj-easy/graal-build-time {:mvn/version "0.1.4"}
+                org.slf4j/slf4j-simple {:mvn/version "2.0.7"}}}}}

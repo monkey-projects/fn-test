@@ -3,10 +3,14 @@
 (ns build
   (:require [clojure.tools.build.api :as b]))
 
-(def basis (b/create-basis {:project "deps.edn"}))
+(def basis (b/create-basis {:project "deps.edn"
+                            :aliases [:uberjar]}))
 (def class-dir "target/classes")
 (def uberjar "target/fn-test-standalone.jar")
 (def src-dir "src/main/clj")
+
+(defn clean [_]
+  (b/delete {:path "target"}))
 
 (defn uber [_]
   (b/copy-dir {:src-dirs [src-dir]

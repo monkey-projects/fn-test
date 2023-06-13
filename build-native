@@ -1,0 +1,14 @@
+#!/bin/bash
+
+native-image \
+    --static \
+    --no-fallback \
+    --link-at-build-time \
+    --initialize-at-build-time=org.slf4j.simple.SimpleLogger \
+    --enable-url-protocols=https,http \
+    --report-unsupported-elements-at-runtime \
+    -H:Name=func \
+    -H:ReflectionConfigurationFiles=reflect-config.json \
+    -classpath "target/fn-test-standalone.jar" \
+    -jar "target/fn-test-standalone.jar" \
+    -o target/func

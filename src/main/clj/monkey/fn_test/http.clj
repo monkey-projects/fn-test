@@ -3,6 +3,8 @@
   (:require [camel-snake-kebab.core :as csk]
             [clj-commons.byte-streams :as bs]))
 
+(set! *warn-on-reflection* true)
+
 (def request-line-pattern #"([A-Z]+)\s+(\S+)\s+HTTP/(\S+)")
 
 (defn- parse-request-line [state lines]
@@ -19,7 +21,7 @@
     (let [line (first lines)]
       (if (empty? line)
         (assoc state :state :body)
-        (let [[k v] (clojure.string/split line #":")]
+        (let [[k ^String v] (clojure.string/split line #":")]
           (assoc-in state [:result :headers (csk/->kebab-case-keyword k)] (.trim v)))))))
 
 (defn- parse-body [state lines]

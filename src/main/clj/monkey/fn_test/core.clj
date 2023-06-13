@@ -8,31 +8,30 @@
              [path :as p]])
   (:import [java.io StringWriter PrintWriter]
            [java.net StandardProtocolFamily UnixDomainSocketAddress]
-           [java.nio.channels ServerSocketChannel]
-           [java.nio ByteBuffer]))
+           [java.nio.channels SocketChannel ServerSocketChannel]
+           [java.nio ByteBuffer]
+           [java.nio.file Path]))
 
-(defn open-socket-channel
+(set! *warn-on-reflection* true)
+
+(defn ^ServerSocketChannel open-socket-channel
   "Opens a Unix domain socket at given path and creates a
    listening channel for it."
-  [path]
-  (let [addr (UnixDomainSocketAddress/of path)]
-    (doto (-> (ServerSocketChannel/open StandardProtocolFamily/UNIX)
-              (.configureBlocking true))
-      ;; Bind the channel to the address
-      (.bind addr))))
+  [^Path path]
+  (let [addr (UnixDomainSocketAddress/of path)
+        ch (ServerSocketChannel/open StandardProtocolFamily/UNIX)]
+    (.configureBlocking ch true)
+    ;; Bind the channel to the address
+    (.bind ch addr)))
 
-(defn close-socket-channel [c]
+(defn close-socket-channel [^ServerSocketChannel c]
   (.close c))
 
 (defn parse-socket-path [v]
   (let [prefix "unix:"]
     (subs v (count prefix))))
 
-(defn handler
-  [_ data]
-  (str "Hello, World from Clojure using fdk-clj! Data is " data))
-
-(defn- close-and-delete! [chan path]
+(defn- close-and-delete! [^ServerSocketChannel chan path]
   (try
     (log/debug "Closing socket at" path)
     (close-socket-channel chan)
@@ -58,33 +57,36 @@
     (.flush w)
     (.toString sw)))
 
-(defn- read-from-channel [chan]
+(defn- read-from-channel [^SocketChannel chan]
   (let [buf (ByteBuffer/allocate 10000)
-        n (.read chan buf)]
+        n (.read chan (into-array java.nio.ByteBuffer [buf]))]
     ;; TODO Support larger requests
     (log/debug "Read" n "bytes")
     (.flip buf)
     buf))
 
-(defn- write-to-channel [chan body]
+(defn- write-to-channel [^SocketChannel chan body]
   (->> (make-reply ["HTTP/1.1 200 OK"
                     "Fn-Fdk-Version: fdk-clj/0.0.1"
                     "Content-type: text/plain"
                     ""
                     body])
        (bs/to-byte-buffer)
+       (vector)
+       (into-array java.nio.ByteBuffer)
        (.write chan)))
 
-(defn- tmp-socket-path [dir]
+(defn- tmp-socket-path [^Path dir]
   (.resolve dir (str "fn-" (random-uuid) ".sock")))
 
-(defn- accept-and-reply [chan]
+(defn- accept-and-reply [^ServerSocketChannel chan]
   (log/debug "Waiting for incoming connection...")
   (let [in (.accept chan)
         req (-> in
                 (read-from-channel)
                 (http/parse-incoming))]
     (log/info "Got incoming request:" (:method req) (:path req))
+    ;; TODO Delegate to ring-style handler and build an actual response
     (write-to-channel in "The test has succeeded!")
     (.close in)))
 

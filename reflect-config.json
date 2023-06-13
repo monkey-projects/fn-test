@@ -1,0 +1,30 @@
+[
+    {
+	"name": "java.net.UnixDomainSocketAddress",
+	"queryAllPublicConstructors": true,
+	"queryAllPublicMethods": true,
+	"allPublicMethods": true,
+	"allPublicConstructors": true
+    },
+    {
+	"name": "java.nio.channels.ServerSocketChannel",
+	"queryAllPublicConstructors": true,
+	"queryAllPublicMethods": true,
+	"allPublicMethods": true,
+	"allPublicConstructors": true
+    },
+    {
+	"name": "sun.nio.ch.ServerSocketChannelImpl",
+	"queryAllPublicConstructors": true,
+	"queryAllPublicMethods": true,
+	"allPublicMethods": true,
+	"allPublicConstructors": true
+    },
+    {
+	"name": "sun.nio.ch.SocketChannelImpl",
+	"queryAllPublicConstructors": true,
+	"queryAllPublicMethods": true,
+	"allPublicMethods": true,
+	"allPublicConstructors": true
+    }
+]

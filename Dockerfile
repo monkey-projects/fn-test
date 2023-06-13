@@ -1,8 +1,8 @@
-FROM eclipse-temurin:20-jre
+FROM scratch
 
 WORKDIR /function
 
-ADD target/fn-test-standalone.jar /function/func.jar
+ADD target/func .
 
-CMD ["java", "-jar", "func.jar"]
+CMD ["./func"]
 
