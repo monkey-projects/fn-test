@@ -1,7 +1,8 @@
 (ns monkey.fn-test.http
   "HTTP request/reply functionality"
   (:require [camel-snake-kebab.core :as csk]
-            [clj-commons.byte-streams :as bs]))
+            [clj-commons.byte-streams :as bs])
+  (:import [java.io StringWriter PrintWriter]))
 
 (set! *warn-on-reflection* true)
 
@@ -47,3 +48,45 @@
         (if (not= :done state)
           (recur new-state (rest lines))
           (:result new-state))))))
+
+(defn print-lines [lines]
+  (let [sw (StringWriter.)
+        w (PrintWriter. sw)]
+    (doseq [l lines]
+      (.println w l))
+    (.flush w)
+    (.toString sw)))
+
+(def status-names
+  ;; TODO Add others
+  {200 "OK"
+   500 "Internal server error"
+   400 "Client error"
+   404 "Not found"})
+
+(defn- status->str [{:keys [status]}]
+  (format "HTTP/1.1 %d %s" status (get status-names status)))
+
+(defn- add-headers [out {:keys [headers]}]
+  (letfn [(header->str [[k v]]
+            (str (if (keyword? k)
+                   (csk/->HTTP-Header-Case (name k))
+                   ;; TODO Escaping
+                   k) ": " v))]
+    (->> headers
+         (map header->str)
+         (concat out))))
+
+(defn- add-body [out {:keys [body]}]
+  (cond-> out
+    body (concat ["" body])))
+
+(defn serialize-response
+  "Serializes the HTTP response into a string that can be sent through
+   the channel."
+  [resp]
+  (-> (status->str resp)
+      (vector)
+      (add-headers resp)
+      (add-body resp)
+      (print-lines)))

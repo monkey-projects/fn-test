@@ -26,15 +26,10 @@
       (throw (ex-info "FN_LISTENER must be specified")))
     listener))
 
-(defn- make-reply [lines]
-  (let [sw (StringWriter.)
-        w (PrintWriter. sw)]
-    (doseq [l lines]
-      (.println w l))
-    (.flush w)
-    (.toString sw)))
-
-(defn- accept-and-reply [^ServerSocketChannel chan]
+(defn- accept-and-reply
+  "Accepts an incoming connection on the given server socket and sends
+   a reply back."
+  [^ServerSocketChannel chan]
   (log/debug "Waiting for incoming connection...")
   (let [in (.accept chan)
         req (-> in
@@ -42,12 +37,12 @@
                 (http/parse-incoming))]
     (log/info "Got incoming request:" (:method req) (:path req))
     ;; TODO Delegate to ring-style handler and build an actual response
-    (s/write-to-channel in
-                        (make-reply ["HTTP/1.1 200 OK"
-                                     "Fn-Fdk-Version: fdk-clj/0.0.1"
-                                     "Content-type: text/plain"
-                                     ""
-                                     "The test has succeeded!"]))
+    (->> {:status 200
+          :headers {:fn-fdk-version "fdk-clj/0.0.2"
+                    :content-type "text/plain"}
+          :body "This is a test reply"}
+         (http/serialize-response)
+         (s/write-to-channel in))
     (.close in)))
 
 (defn- accept-connections [chan]
@@ -57,7 +52,9 @@
 (defn listen-on-socket [socket-path link-path]
   (log/debug "Listening on socket" socket-path)
   (let [chan (s/open-socket-channel socket-path)]
-    ;; Make the file world writable and create a symlink
+    ;; Make the file world writable and create a symlink.  This is necessary
+    ;; because the file that's being created for the socket is not accessible
+    ;; to the fn agent.
     (p/make-writable socket-path)
     (p/create-symlink socket-path link-path)
     (try
