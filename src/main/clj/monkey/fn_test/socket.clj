@@ -10,15 +10,20 @@
 
 (set! *warn-on-reflection* true)
 
-(defn ^ServerSocketChannel open-socket-channel
+(defn- open-socket-channel
   "Opens a Unix domain socket at given path and creates a
    listening channel for it."
-  [^Path path]
-  (let [addr (UnixDomainSocketAddress/of path)
-        ch (ServerSocketChannel/open StandardProtocolFamily/UNIX)]
+  [^Path path ch]
+  (let [addr (UnixDomainSocketAddress/of path)]
     (.configureBlocking ch true)
     ;; Bind the channel to the address
     (.bind ch addr)))
+
+(defn ^ServerSocketChannel open-server-socket-channel [^Path path]
+  (open-socket-channel path (ServerSocketChannel/open StandardProtocolFamily/UNIX)))
+
+(defn ^SocketChannel open-client-socket-channel [^Path path]
+  (open-socket-channel path (SocketChannel/open StandardProtocolFamily/UNIX)))
 
 (defn close-socket-channel [^ServerSocketChannel c]
   (.close c))
