@@ -1,6 +1,7 @@
 (ns monkey.fn-test.core
   (:gen-class)
   (:require [clojure.java.io :as io]
+            [clojure.string :as cs]
             [clojure.tools.logging :as log]
             [clj-commons.byte-streams :as bs]
             [monkey.fn-test
@@ -28,14 +29,76 @@
       (throw (ex-info "FN_LISTENER must be specified")))
     listener))
 
+(defn- hex->int
+  "Parse hex string"
+  [s]
+  (Integer/parseInt s 16))
+
+#_(defn parse-body-lines
+  "Parses body line seq, formatted as a sequence of [<length>, <text>].
+   Returns a list of input strings."
+  [body]
+  (loop [in body
+         acc []
+         s nil
+         n nil]
+    (if (empty? in)
+      acc
+      (let [l (first in)]
+        (if (nil? n)
+          ;; New counter (hex)
+          (recur (rest in)
+                 acc
+                 ""
+                 (->hex l))
+          ;; Otherwise it's content
+          (if (nil? s)
+            (recur (rest in)
+                   acc
+                   l
+                   n)
+            (if (< (count s) n)
+              (recur (rest in)
+                     acc
+                     (str s "\n" l)   
+                     n)
+              (recur (rest in)
+                     (conj acc s)
+                     nil
+                     nil))))))))
+
+(defn parse-body-lines
+  "Given a multiline body string, where each line is preceeded by the length
+   of the next contents (as hex).  Returns a seq of parsed lines."
+  [body]
+  (let [newline #{\newline \return}
+        skip (fn [n s]
+               (->> s
+                    (drop n)
+                    (drop-while newline)))]
+    (loop [in body
+           acc []]
+      (if (empty? body)
+        acc
+        (let [v (take-while (complement newline) in)]
+          (if (empty? v)
+            (drop-last acc)  ; Drop the last one, it's always empty
+            (let [n (->> v
+                         (apply str)
+                         (hex->int))
+                  in (skip (count v) in)]
+              (recur (skip n in)
+                     (conj acc (apply str (take n in)))))))))))
+
 (defn- add-default-headers [resp]
-  (assoc-in resp [:headers :content-type :fn-fdk-version] (str "fdk-clj/" fdk-version)))
+  (assoc-in resp [:headers :fn-fdk-version] (str "fdk-clj/" fdk-version)))
 
 (defmulti handle-request :path)
 
 (defmethod handle-request "/call" [{:keys [handler channel] :as req}]
+  (log/info "Handling regular request with body" (:body req) "and headers" (:headers req))
   ;; Delegate to ring-style handler and build a response
-  (->> req
+  (->> (update req :body parse-body-lines)
        (handler)
        (add-default-headers)
        (http/serialize-response)
@@ -61,6 +124,8 @@
           (assoc :handler handler
                  :channel in)
           (handle-request))
+      (catch Exception ex
+        (log/error "Failed to handle request" ex))
       (finally
         (.close in)))))
 
@@ -83,7 +148,8 @@
         (s/close-and-delete! chan socket-path)
         (p/delete link-path)))))
 
-(defn dummy-handler [_]
+(defn dummy-handler [{:keys [body]}]
+  (log/info "Incoming body:" body)
   {:status 200
    :headers {:content-type "text/plain"}
    :body "This is a test reply"})

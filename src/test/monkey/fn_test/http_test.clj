@@ -15,9 +15,9 @@
     (let [r (sut/parse-incoming "GET /call HTTP/1.1\r\nContent-Type: application/json\r\n")]
       (is (= {:content-type "application/json"} (:headers r)))))
 
-  (testing "parses body as seq of lines"
+  (testing "parses body as string"
     (let [r (sut/parse-incoming "GET /call HTTP/1.1\r\n\r\nThis is the body\r\n")]
-      (is (= ["This is the body"] (:body r))))))
+      (is (= "This is the body\r\n" (:body r))))))
 
 (deftest print-lines
   (testing "generates newline separated string"

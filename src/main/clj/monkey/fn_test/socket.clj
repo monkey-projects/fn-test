@@ -13,17 +13,15 @@
 (defn- open-socket-channel
   "Opens a Unix domain socket at given path and creates a
    listening channel for it."
-  [^Path path ch]
+  [^Path path ^ServerSocketChannel ch]
   (let [addr (UnixDomainSocketAddress/of path)]
-    (.configureBlocking ch true)
     ;; Bind the channel to the address
     (.bind ch addr)))
 
 (defn ^ServerSocketChannel open-server-socket-channel [^Path path]
-  (open-socket-channel path (ServerSocketChannel/open StandardProtocolFamily/UNIX)))
-
-(defn ^SocketChannel open-client-socket-channel [^Path path]
-  (open-socket-channel path (SocketChannel/open StandardProtocolFamily/UNIX)))
+  (let [ch (ServerSocketChannel/open StandardProtocolFamily/UNIX)]
+    (.configureBlocking ch true)
+    (open-socket-channel path ch)))
 
 (defn close-socket-channel [^ServerSocketChannel c]
   (.close c))
