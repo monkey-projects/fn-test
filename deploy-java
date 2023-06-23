@@ -2,5 +2,6 @@
 
 clojure -T:build clean
 clojure -T:build uber
-./build-native
+ln -s Dockerfile-java Dockerfile
 fn deploy --app test1 --local
+rm Dockerfile
