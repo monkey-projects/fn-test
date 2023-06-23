@@ -1,4 +1,4 @@
 schema_version: 20180708
 name: fntest1
-version: 0.0.60
+version: 0.0.65
 runtime: docker

@@ -2,33 +2,51 @@
   "HTTP request/reply functionality"
   (:require [camel-snake-kebab.core :as csk]
             [clj-commons.byte-streams :as bs])
-  (:import [java.io StringWriter PrintWriter]))
+  (:import [java.io StringWriter PrintWriter LineNumberReader]))
 
 (set! *warn-on-reflection* true)
 
 (def request-line-pattern #"([A-Z]+)\s+(\S+)\s+HTTP/(\S+)")
 
-(defn- parse-request-line [state lines]
-  (if-let [[_ method path version] (re-matches request-line-pattern (first lines))]
+(defn- read-next-line [state]
+  (let [r ^LineNumberReader (:reader state)]
+    (.readLine r)))
+
+(defn- parse-request-line [state]
+  (let [line (read-next-line state)
+        [_ method path version] (re-matches request-line-pattern line)]
     (assoc state
            :result {:method (csk/->kebab-case-keyword method)
                     :path path
                     :version version}
            :state :headers)))
 
-(defn- parse-header [state lines]
-  (if (empty? lines)
-    (assoc state :state :done)
-    (let [line (first lines)]
-      (if (empty? line)
-        (assoc state :state :body)
-        (let [[k ^String v] (clojure.string/split line #":")]
-          (assoc-in state [:result :headers (csk/->kebab-case-keyword k)] (.trim v)))))))
+(defn- parse-header [state]
+  (let [line (read-next-line state)]
+    (if (empty? line)
+      (assoc state :state :body)
+      (let [[k ^String v] (clojure.string/split line #":")]
+        (assoc-in state [:result :headers (csk/->kebab-case-keyword k)] (.trim v))))))
 
-(defn- parse-body [state lines]
+(defn- read-remaining
+  "Reads remaining chars from the reader and converts it to a string"
+  [^LineNumberReader r]
+  (let [size 10000
+        buf (char-array size)
+        read-next (fn []
+                    (let [n (.read r buf)]
+                      (if (neg? n) nil (String. buf 0 n))))]
+    (loop [acc ""
+           r (read-next)]
+      (if (or (nil? r) (< (count r) size))
+        (str acc r)
+        (recur (str acc r)
+               (read-next))))))
+
+(defn- parse-body [state]
   (-> state
       (assoc :state :done)
-      (assoc-in [:result :body] lines)))
+      (assoc-in [:result :body] (read-remaining (:reader state)))))
 
 (def initial-state {:state :initial})
 
@@ -40,13 +58,14 @@
 (defn parse-incoming
   "Parses incoming http request using very naive state machine."
   [buf]
-  (let [ls (bs/to-line-seq buf)]
-    (loop [state {:state :initial}
-           lines ls]
+  (let [reader (bs/to-reader buf)
+        lines (LineNumberReader. reader)]
+    (loop [state {:state :initial
+                  :reader lines}]
       (let [handler (get state-handlers (:state state))
-            {:keys [state] :as new-state} (handler state lines)]
+            {:keys [state] :as new-state} (handler state)]
         (if (not= :done state)
-          (recur new-state (rest lines))
+          (recur new-state)
           (:result new-state))))))
 
 (defn print-lines [lines]

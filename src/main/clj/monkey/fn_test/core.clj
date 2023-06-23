@@ -1,6 +1,8 @@
 (ns monkey.fn-test.core
   (:gen-class)
-  (:require [clojure.java.io :as io]
+  (:require [camel-snake-kebab.core :as csk]
+            [clojure.data.json :as json]
+            [clojure.java.io :as io]
             [clojure.string :as cs]
             [clojure.tools.logging :as log]
             [clj-commons.byte-streams :as bs]
@@ -34,45 +36,13 @@
   [s]
   (Integer/parseInt s 16))
 
-#_(defn parse-body-lines
-  "Parses body line seq, formatted as a sequence of [<length>, <text>].
-   Returns a list of input strings."
-  [body]
-  (loop [in body
-         acc []
-         s nil
-         n nil]
-    (if (empty? in)
-      acc
-      (let [l (first in)]
-        (if (nil? n)
-          ;; New counter (hex)
-          (recur (rest in)
-                 acc
-                 ""
-                 (->hex l))
-          ;; Otherwise it's content
-          (if (nil? s)
-            (recur (rest in)
-                   acc
-                   l
-                   n)
-            (if (< (count s) n)
-              (recur (rest in)
-                     acc
-                     (str s "\n" l)   
-                     n)
-              (recur (rest in)
-                     (conj acc s)
-                     nil
-                     nil))))))))
-
 (defn parse-body-lines
   "Given a multiline body string, where each line is preceeded by the length
    of the next contents (as hex).  Returns a seq of parsed lines."
   [body]
   (let [newline #{\newline \return}
         skip (fn [n s]
+               ;; Skip the next n chars and newlines
                (->> s
                     (drop n)
                     (drop-while newline)))]
@@ -148,11 +118,29 @@
         (s/close-and-delete! chan socket-path)
         (p/delete link-path)))))
 
+(defn try-json
+  "Tries to parse into JSON.  `nil` if parsing fails."
+  [s]
+  (try
+    (json/read-str s :key-fn csk/->kebab-case-keyword)
+    (catch Exception ex
+      nil)))
+
+(defn json->str [x]
+  (json/write-str x :key-fn (comp csk/->camelCase name)))
+
 (defn dummy-handler [{:keys [body]}]
-  (log/info "Incoming body:" body)
-  {:status 200
-   :headers {:content-type "text/plain"}
-   :body "This is a test reply"})
+  (let [contents (first body)
+        json (try-json contents)]
+    (cond-> {:status 200}
+      json
+      (assoc :headers {:content-type "application/json"}
+             :body (json->str {:message "Contents was json"
+                               :input (:message json)}))
+
+      (nil? json)
+      (assoc :headers {:content-type "text/plain"}
+             :body (str "The contents was not json: " contents)))))
 
 (defn -main [& args]
   (try

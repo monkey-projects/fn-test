@@ -17,7 +17,11 @@
 
   (testing "parses body as string"
     (let [r (sut/parse-incoming "GET /call HTTP/1.1\r\n\r\nThis is the body\r\n")]
-      (is (= "This is the body\r\n" (:body r))))))
+      (is (= "This is the body\r\n" (:body r)))))
+
+  (testing "parses multiline body as string"
+    (let [r (sut/parse-incoming "GET /call HTTP/1.1\r\n\r\nFirst\r\nSecond\r\n")]
+      (is (= "First\r\nSecond\r\n" (:body r))))))
 
 (deftest print-lines
   (testing "generates newline separated string"
